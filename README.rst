@@ -1,6 +1,6 @@
-==================================
-bodhi v2.0 development environment
-==================================
+=============================
+bodhi development environment
+=============================
 
 There are two ways to bootstrap a Bodhi development environment. You can use Vagrant, or you can use
 virtualenv on an existing host.
@@ -9,16 +9,15 @@ virtualenv on an existing host.
 Vagrant
 =======
 
-[Vagrant](https://www.vagrantup.com/) allows contributors to get quickly up and running with a Bodhi
-development environment by automatically configuring a virtual machine. To get started, simply use
-these commands::
+`Vagrant <https://www.vagrantup.com/>`_ allows contributors to get quickly up and running with a
+Bodhi development environment by automatically configuring a virtual machine. To get started, simply
+use these commands::
 
-    # This won't be necessary once https://bugzilla.redhat.com/show_bug.cgi?id=1343814 is done
-    $ sudo dnf copr enable dustymabe/vagrant-sshfs
-    $ sudo dnf install vagrant-libvirt vagrant-sshfs
+    $ sudo dnf install ansible vagrant-libvirt vagrant-sshfs
     $ cp Vagrantfile.example Vagrantfile
     # Make sure your bodhi checkout is your shell's cwd
     $ vagrant up
+    $ vagrant ssh -c "cd /vagrant/; pserve development.ini --reload"
 
 
 Quick tips about the Bodhi Vagrant environment
@@ -39,6 +38,15 @@ You can run the unit tests within the guest with nosetests::
 
     $ cd /vagrant
     $ nosetests -v
+
+You can run the development server from inside the Vagrant environment::
+
+    $ pserve /vagrant/development.ini --reload
+
+It is possible to connect your Vagrant box to the staging Koji instance for testing, which can be
+handy at times. You will need to copy your ``.fedora.cert`` and ``.fedora-server-ca.cert`` that you
+normally use to connect to Koji into your Vagrant box, storing them in ``/home/vagrant``. Once you
+have those in place, you can set ``buildsystem = koji`` in your ``development.ini`` file.
 
 When you are done with your Vagrant guest, you can destroy it permanently by running this command on
 the host::
@@ -190,3 +198,12 @@ As a privileged user on a Fedora system run the following:
 ::
 
     sudo systemctl start postgresql.service
+
+
+Meetings
+========
+
+There is a meeting every four weeks between Bodhi developers and stakeholder,
+held on IRC. If you would like to attend, you can see details here:
+
+https://apps.fedoraproject.org/calendar/meeting/4667/

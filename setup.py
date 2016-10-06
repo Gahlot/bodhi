@@ -11,12 +11,28 @@ import os
 import sys
 
 from setuptools import setup, find_packages
+import setuptools.command.egg_info
+
 
 here = os.path.abspath(os.path.dirname(__file__))
 README = open(os.path.join(here, 'README.rst')).read()
-CHANGES = open(os.path.join(here, 'CHANGES.txt')).read()
+VERSION = '2.2.4'
+# Possible options are at https://pypi.python.org/pypi?%3Aaction=list_classifiers
+CLASSIFIERS = [
+    'Development Status :: 5 - Production/Stable',
+    'Intended Audience :: Developers',
+    'Intended Audience :: System Administrators',
+    'License :: OSI Approved :: GNU General Public License v2 or later (GPLv2+)',
+    'Operating System :: POSIX :: Linux',
+    'Programming Language :: Python :: 2.7',
+    'Topic :: System :: Software Distribution']
+LICENSE = 'GPLv2+'
+MAINTAINER = 'Fedora Infrastructure Team'
+MAINTAINER_EMAIL = 'infrastructure@lists.fedoraproject.org'
+PLATFORMS = ['Fedora', 'GNU/Linux']
+URL = 'https://github.com/fedora-infra/bodhi'
 
-requires = [
+server_requires = [
     'pyramid',
     'pyramid_mako',
     'pyramid_debugtoolbar',
@@ -63,36 +79,34 @@ requires = [
 
     'Sphinx',
 
-    # For the bodhi-client
-    'click',
-
     'WebOb>=1.4.1',
     ]
 
 if sys.version_info[:3] < (2,7,0):
-    requires.append('importlib')
+    server_requires.append('importlib')
 
 if sys.version_info[:3] < (2,5,0):
-    requires.append('pysqlite')
+    server_requires.append('pysqlite')
+
+
+setuptools.command.egg_info.manifest_maker.template = 'BODHI_MANIFEST.in'
+
 
 setup(name='bodhi',
-      version='2.1.9',
-      description='bodhi',
-      long_description=README + '\n\n' +  CHANGES,
-      classifiers=[
-        "Programming Language :: Python",
-        "Framework :: Pyramid",
-        "Topic :: Internet :: WWW/HTTP",
-        "Topic :: Internet :: WWW/HTTP :: WSGI :: Application",
-        ],
-      author='',
-      author_email='',
-      url='',
-      keywords='web fedora pyramid',
-      packages=find_packages(),
+      version=VERSION,
+      description='bodhi common package',
+      long_description=README,
+      classifiers=CLASSIFIERS,
+      license=LICENSE,
+      maintainer=MAINTAINER,
+      maintainer_email=MAINTAINER_EMAIL,
+      platforms=PLATFORMS,
+      url=URL,
+      keywords='fedora',
+      packages=['bodhi'],
       include_package_data=True,
       zip_safe=False,
-      install_requires = requires,
+      install_requires = [],
       tests_require = [
           'nose',
           'nose-cov',
@@ -100,25 +114,80 @@ setup(name='bodhi',
           'mock'
       ],
       test_suite="nose.collector",
+      )
+
+
+setuptools.command.egg_info.manifest_maker.template = 'CLIENT_MANIFEST.in'
+
+
+setup(name='bodhi-client',
+      version=VERSION,
+      description='bodhi client',
+      long_description=README,
+      classifiers=CLASSIFIERS,
+      license=LICENSE,
+      maintainer=MAINTAINER,
+      maintainer_email=MAINTAINER_EMAIL,
+      platforms=PLATFORMS,
+      url=URL,
+      keywords='fedora',
+      packages=['bodhi.client'],
+      include_package_data=False,
+      zip_safe=False,
+      install_requires = ['click'],
+      entry_points = """\
+      [console_scripts]
+      bodhi = bodhi.client:cli
+      """,
+      )
+
+
+setuptools.command.egg_info.manifest_maker.template = 'SERVER_MANIFEST.in'
+# Due to https://github.com/pypa/setuptools/issues/808, we need to include the bodhi superpackage
+# and then remove it if we want find_packages() to find the bodhi.server package and its
+# subpackages without including the bodhi top level package.
+server_packages = find_packages(
+    exclude=['bodhi.client', 'bodhi.client.*', 'bodhi.tests', 'bodhi.tests.*'])
+server_packages.remove('bodhi')
+
+
+setup(name='bodhi-server',
+      version=VERSION,
+      description='bodhi server',
+      long_description=README,
+      classifiers=CLASSIFIERS + [
+        "Framework :: Pyramid",
+        'Programming Language :: JavaScript',
+        "Topic :: Internet :: WWW/HTTP",
+        "Topic :: Internet :: WWW/HTTP :: WSGI :: Application"],
+      license=LICENSE,
+      maintainer=MAINTAINER,
+      maintainer_email=MAINTAINER_EMAIL,
+      platforms=PLATFORMS,
+      url=URL,
+      keywords='web fedora pyramid',
+      packages=server_packages,
+      include_package_data=True,
+#      script_args=sys.argv.extend(['--template', 'TEST']),
+      zip_safe=False,
+      install_requires = server_requires,
       message_extractors = { '.': [
           #('**.py', 'lingua_python', None),
           #('**.mak', 'lingua_xml', None),
       ]},
       entry_points = """\
       [paste.app_factory]
-      main = bodhi:main
+      main = bodhi.server:main
       [console_scripts]
-      initialize_bodhi_db = bodhi.scripts.initializedb:main
-      bodhi = bodhi.cli:cli
-      bodhi-push = bodhi.push:push
-      bodhi-expire-overrides = bodhi.scripts.expire_overrides:main
-      bodhi-untag-branched = bodhi.scripts.untag_branched:main
-      bodhi-approve-testing = bodhi.scripts.approve_testing:main
-      bodhi-manage-releases = bodhi.scripts.manage_releases:main
+      initialize_bodhi_db = bodhi.server.scripts.initializedb:main
+      bodhi-push = bodhi.server.push:push
+      bodhi-expire-overrides = bodhi.server.scripts.expire_overrides:main
+      bodhi-untag-branched = bodhi.server.scripts.untag_branched:main
+      bodhi-approve-testing = bodhi.server.scripts.approve_testing:main
+      bodhi-manage-releases = bodhi.server.scripts.manage_releases:main
       [moksha.consumer]
-      masher = bodhi.consumers.masher:Masher
-      updates = bodhi.consumers.updates:UpdatesHandler
+      masher = bodhi.server.consumers.masher:Masher
+      updates = bodhi.server.consumers.updates:UpdatesHandler
       """,
       paster_plugins=['pyramid'],
       )
-
